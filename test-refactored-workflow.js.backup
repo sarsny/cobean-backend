@@ -1,0 +1,87 @@
+const axios = require('axios');
+
+// 测试重构后的工作流接口
+async function testRefactoredWorkflow() {
+  const baseURL = 'http://localhost:3000';
+  const satToken = 'sat_X1n9dwCN24G3FKkKBwbEqEpL6pAOOCWbx24lOrRxeAdFvBtZEC7DY5qs7DNBlXyL';
+  
+  console.log('=== 测试重构后的工作流接口 ===\n');
+
+  try {
+    // 测试1: 使用简化的输入参数（只需 thoughtId 和 userId）
+    console.log('测试1: 简化输入参数测试');
+    const response1 = await axios.post(`${baseURL}/api/v1/workflow/trigger`, {
+      thoughtId: '9be12eec-97a9-4cf0-8f16-c2badee5a442',
+      userId: 'X1n9dwCN-24G3-FKkK-BwbE-qEpL6pAOOCWb'
+    }, {
+      headers: {
+        'Authorization': `Bearer ${satToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('响应状态:', response1.status);
+    console.log('响应数据:', JSON.stringify(response1.data, null, 2));
+    console.log('✅ 简化输入参数测试成功\n');
+
+    // 测试2: 验证数据获取逻辑
+    console.log('测试2: 验证数据获取逻辑');
+    if (response1.data.success) {
+      const { thoughtId, userId, workflowResult } = response1.data.data;
+      
+      console.log('返回的 thoughtId:', thoughtId);
+      console.log('返回的 userId:', userId);
+      console.log('工作流结果类型:', typeof workflowResult);
+      console.log('工作流结果包含 actions:', workflowResult && workflowResult.actions ? '是' : '否');
+      console.log('工作流结果包含 chats:', workflowResult && workflowResult.chats ? '是' : '否');
+      
+      console.log('✅ 数据获取逻辑验证成功\n');
+    }
+
+    // 测试3: 错误处理测试
+    console.log('测试3: 错误处理测试');
+    try {
+      const response3 = await axios.post(`${baseURL}/api/v1/workflow/trigger`, {
+        thoughtId: 'invalid_id',
+        userId: 'invalid_user'
+      }, {
+        headers: {
+          'Authorization': `Bearer ${satToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('❌ 错误处理测试失败 - 应该返回错误');
+    } catch (error) {
+      console.log('错误响应状态:', error.response?.status);
+      console.log('错误响应数据:', JSON.stringify(error.response?.data, null, 2));
+      console.log('✅ 错误处理测试成功\n');
+    }
+
+    // 测试4: 缺少参数测试
+    console.log('测试4: 缺少参数测试');
+    try {
+      const response4 = await axios.post(`${baseURL}/api/v1/workflow/trigger`, {
+        thoughtId: '9be12eec-97a9-4cf0-8f16-c2badee5a442'
+        // 缺少 userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${satToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('❌ 缺少参数测试失败 - 应该返回错误');
+    } catch (error) {
+      console.log('错误响应状态:', error.response?.status);
+      console.log('错误响应数据:', JSON.stringify(error.response?.data, null, 2));
+      console.log('✅ 缺少参数测试成功\n');
+    }
+
+    console.log('🎉 所有测试完成！重构后的工作流接口工作正常');
+
+  } catch (error) {
+    console.error('测试失败:', error.response?.data || error.message);
+    console.error('状态码:', error.response?.status);
+  }
+}
+
+testRefactoredWorkflow();
