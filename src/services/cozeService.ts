@@ -70,6 +70,7 @@ export class CozeService {
         conversationId = await this.createConversation(userId);
       }
 
+      // 构建基础参数
       const chatParams: any = {
         bot_id: this.config.botId,
         user_id: userId,
@@ -81,14 +82,19 @@ export class CozeService {
             content_type: 'text',
           },
         ],
-        conversation_id: conversationId,
       };
+
+      // 如果提供了 conversationId，添加到请求参数中
+      if (conversationId) {
+        chatParams.conversation_id = conversationId;
+      }
 
       // 如果有自定义变量，添加到请求参数中
       if (customVariables && Object.keys(customVariables).length > 0) {
         chatParams.custom_variables = customVariables;
       }
 
+      console.info('发起对话参数:', JSON.stringify(chatParams, null, 2));
       const chatResult = await this.client.chat.createAndPoll(chatParams);
 
       return {

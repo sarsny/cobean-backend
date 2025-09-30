@@ -32,6 +32,7 @@ router.delete('/thoughts/:id', mockAuth, mockThoughtOperations.delete);
 router.post('/actions/generate', mockAuth, validateGenerateAction, mockActionOperations.generate);
 router.get('/actions', mockAuth, mockActionOperations.getAll);
 router.get('/actions/:id', mockAuth, mockActionOperations.getById);
+router.get('/actions/thought/:thoughtId', mockAuth, mockActionOperations.getByThoughtId);
 router.put('/actions/:id/status', mockAuth, validateUpdateActionStatus, mockActionOperations.updateStatus);
 
 // Mock Choice routes

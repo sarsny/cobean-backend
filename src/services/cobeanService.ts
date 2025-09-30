@@ -27,18 +27,18 @@ export class CobeanService {
       // 获取历史行动数据 - 先获取该思考的所有行动，再获取对应的历史记录
       const actions = await ActionModel.findByThoughtId(thoughtId);
       let historicalActions: any[] = [];
-      
-      for (const action of actions) {
-        const actionHistoryRecords = await ActionHistoryModel.findByActionId(action.id);
-        historicalActions = historicalActions.concat(
-          actionHistoryRecords.map(history => ({
-            id: history.id,
-            action_id: history.action_id,
-            final_status: history.final_status,
-            notes: history.notes || '行动记录'
-          }))
-        );
-      }
+
+      // for (const action of actions) {
+      //   const actionHistoryRecords = await ActionHistoryModel.findByActionId(action.id);
+      //   historicalActions = historicalActions.concat(
+      //     actionHistoryRecords.map(history => ({
+      //       id: history.id,
+      //       action_id: history.action_id,
+      //       final_status: history.final_status,
+      //       notes: history.notes || '行动记录'
+      //     }))
+      //   );
+      // }
 
       // 获取用户偏好
       const userPreferences = await UserPreferenceModel.findByUserId(userId);
@@ -50,7 +50,7 @@ export class CobeanService {
       // 构建工作流输入
       const workflowInput = {
         bean_info: thought.description || thought.title || '用户思考',
-        historical_actions: historicalActions,
+        historical_actions: actions,
         thought_title: thought.title || '用户思考',
         user_preferences: preferencesObj
       };
@@ -80,16 +80,16 @@ export class CobeanService {
   async analyzeUserThoughtAndActions(thoughtId: string, userId: string): Promise<{ actions: Action[], chats: Chat[] }> {
     try {
       console.log(`[CobeanService] 开始分析用户思考和行为 - thoughtId: ${thoughtId}, userId: ${userId}`);
-      
+
       // 从数据库获取完整数据
       const workflowInput = await this.buildWorkflowInput(thoughtId, userId);
-      
+
       // 获取 CozeService 实例
       const cozeService = getCozeService();
-      
+
       // 调用 Coze 工作流来分析用户思考和行为
       const workflowResult = await cozeService.runWorkflow('7555041516772605991', workflowInput);
-      
+
       if (!workflowResult || !workflowResult.data) {
         console.log('[CobeanService] 工作流返回空结果');
         return { actions: [], chats: [] };
@@ -98,8 +98,8 @@ export class CobeanService {
       // 解析 JSON 字符串数据
       let parsedData;
       try {
-        parsedData = typeof workflowResult.data === 'string' 
-          ? JSON.parse(workflowResult.data) 
+        parsedData = typeof workflowResult.data === 'string'
+          ? JSON.parse(workflowResult.data)
           : workflowResult.data;
       } catch (error) {
         console.error('[CobeanService] 解析工作流数据失败:', error);
@@ -118,11 +118,11 @@ export class CobeanService {
             // 验证并规范化 Action type
             const validActionTypes = [
               'Event', 'Knowledge', 'Decision', 'Reflection', 'Task', 'Exploration',
-              'Social', 'Reward/Achievement', 'Challenge', 'Random Event', 
+              'Social', 'Reward/Achievement', 'Challenge', 'Random Event',
               'Mood/Status', 'Idea/Insight', 'Resource/Tool', 'Interactive Task'
             ];
             const actionType = validActionTypes.includes(actionItem.type) ? actionItem.type : 'Event';
-            
+
             if (actionItem.type && !validActionTypes.includes(actionItem.type)) {
               console.warn(`[CobeanService] 无效的Action类型: ${actionItem.type}，使用默认值: Event`);
             }
@@ -132,12 +132,12 @@ export class CobeanService {
               bean_id: actionItem.bean_id || '11111111-2222-3333-4444-555555555555', // 使用现有的 Bean UUID
               type: actionType,
               summary: actionItem.summary || actionItem.title || '',
-              event: actionItem.event || actionItem.description || '',
-              knowledge: actionItem.knowledge || '',
-              decision: actionItem.decision || '',
-              reflection: actionItem.reflection || ''
+              event: actionItem.details?.event || actionItem.description || '',
+              knowledge: actionItem.details?.knowledge || '',
+              decision: actionItem.details?.decision || '',
+              reflection: actionItem.details?.reflection || ''
             });
-            
+
             actions.push(action);
             console.log(`[CobeanService] 保存行为: ${action.summary}`);
           } catch (error) {
@@ -149,11 +149,11 @@ export class CobeanService {
       // 处理 chats - 将聊天记录插入到execution类型的conversation中
       const chats: Chat[] = [];
       const chatSource = chatData;
-      
+
       if (chatSource && Array.isArray(chatSource)) {
         // 首先查找或创建execution类型的conversation
         let executionConversation = await ChatModel.findByThoughtUserAndType(thoughtId, userId, 'execution');
-        
+
         if (!executionConversation) {
           // 如果不存在execution类型的conversation，创建一个
           executionConversation = await ChatModel.create({
@@ -169,26 +169,60 @@ export class CobeanService {
         // 将每条聊天记录作为消息插入到execution conversation中
         for (const chatItem of chatSource) {
           try {
-            const chatContent = typeof chatItem === 'string' ? chatItem : chatItem.content || JSON.stringify(chatItem);
-            
-            // 创建聊天消息并插入到execution conversation中
-            const message = await ChatMessageModel.create({
-              conversation_id: executionConversation.id,
-              sender: 'bean', // 假设这些是AI生成的消息
-              content: chatContent,
-              metadata: {
-                source: 'workflow_analysis',
-                thought_id: thoughtId,
-                original_data: typeof chatItem === 'object' ? chatItem : undefined
+            let messageType = 'text'; // 默认类型
+            let chatContent = '';
+            let metadata: Record<string, any> = {
+              source: 'workflow_analysis',
+              thought_id: thoughtId
+            };
+
+            // 判断消息类型并处理内容
+            if (typeof chatItem === 'object' && chatItem !== null) {
+              console.info('[CobeanService] 处理对象类型聊天项:', chatItem);
+              // 检查是否包含action字段
+              if (chatItem.action) {
+                messageType = 'action';
+                chatContent = typeof chatItem.action === 'string' ? chatItem.action : JSON.stringify(chatItem.action);
+                metadata.action_data = chatItem.action;
+                metadata.original_data = chatItem;
+
+                // 创建聊天消息并插入到execution conversation中
+                const message = await ChatMessageModel.create({
+                  conversation_id: executionConversation.id,
+                  sender: 'bean', // 假设这些是AI生成的消息
+                  content: chatContent,
+                  metadata: metadata,
+                  type: messageType
+                });
+
+                console.log(`[CobeanService] 插入${messageType}类型聊天消息到execution对话: ${message.id}`);
               }
-            });
-            
-            console.log(`[CobeanService] 插入聊天消息到execution对话: ${message.id}`);
+              // 检查是否包含message字段且包含Coben的语音内容
+              if (chatItem.message) {
+                messageType = 'text';
+                chatContent = typeof chatItem.message === 'string' ? chatItem.message : JSON.stringify(chatItem.message);
+                metadata.message_data = chatItem.message;
+                metadata.original_data = chatItem;
+
+                // 创建聊天消息并插入到execution conversation中
+                const message = await ChatMessageModel.create({
+                  conversation_id: executionConversation.id,
+                  sender: 'bean', // 假设这些是AI生成的消息
+                  content: chatContent,
+                  metadata: metadata,
+                  type: messageType
+                });
+
+                console.log(`[CobeanService] 插入${messageType}类型聊天消息到execution对话: ${message.id}`);
+              }
+
+            }
+
           } catch (error) {
             console.error('[CobeanService] 插入聊天消息失败:', error);
           }
         }
-        
+
         chats.push(executionConversation);
       }
 
@@ -211,11 +245,11 @@ export class CobeanService {
   async generateProactiveSuggestions(thoughtId: string, userId: string, context?: any): Promise<Chat[]> {
     try {
       console.log(`[CobeanService] 生成主动建议 - thoughtId: ${thoughtId}, userId: ${userId}`);
-      
+
       // 这里可以根据上下文生成更智能的建议
       // 暂时返回空数组，后续可以扩展
       return [];
-      
+
     } catch (error) {
       console.error('[CobeanService] 生成主动建议失败:', error);
       throw new Error(`生成主动建议失败: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -236,13 +270,13 @@ export class CobeanService {
     try {
       console.log(`[CobeanService] 开始手动工作流分析`);
       console.log('工作流输入数据:', workflowInput);
-      
+
       // 获取 CozeService 实例
       const cozeService = getCozeService();
-      
+
       // 调用 Coze 工作流，传递完整的用户输入数据
       const workflowResult = await cozeService.runWorkflow('7555041516772605991', workflowInput);
-      
+
       if (!workflowResult || !workflowResult.data) {
         console.log('[CobeanService] 手动工作流返回空结果');
         return { actions: [], chats: [] };
@@ -258,11 +292,11 @@ export class CobeanService {
           // 验证并规范化 Action type
           const validActionTypes = [
             'Event', 'Knowledge', 'Decision', 'Reflection', 'Task', 'Exploration',
-            'Social', 'Reward/Achievement', 'Challenge', 'Random Event', 
+            'Social', 'Reward/Achievement', 'Challenge', 'Random Event',
             'Mood/Status', 'Idea/Insight', 'Resource/Tool', 'Interactive Task'
           ];
           const actionType = validActionTypes.includes(actionItem.type) ? actionItem.type : 'Event';
-          
+
           if (actionItem.type && !validActionTypes.includes(actionItem.type)) {
             console.warn(`[CobeanService] 手动模式 - 无效的Action类型: ${actionItem.type}，使用默认值: Event`);
           }
@@ -280,7 +314,7 @@ export class CobeanService {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           } as Action;
-          
+
           actions.push(action);
           console.log(`[CobeanService] 处理手动行为: ${action.summary}`);
         }
@@ -302,7 +336,7 @@ export class CobeanService {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           } as Chat;
-          
+
           chats.push(chat);
           console.log(`[CobeanService] 处理手动聊天会话: ${chat.id}`);
         }
@@ -327,13 +361,13 @@ export class CobeanService {
   async simulateCobeanBehaviorFeedback(actions: Action[], thoughtId: string, userId: string): Promise<Chat[]> {
     try {
       console.log(`[CobeanService] 模拟 Cobean 行为反馈 - ${actions.length} 个行为`);
-      
+
       const chats: Chat[] = [];
-      
+
       for (const action of actions) {
         // 根据行为类型生成不同的反馈消息
         let feedbackContent = '';
-        
+
         switch (action.type) {
           case 'Event':
             feedbackContent = `我为你的想法记录了一个事件："${action.summary}"，这将帮助你跟踪进展。`;

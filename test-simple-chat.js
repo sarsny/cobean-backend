@@ -205,5 +205,74 @@ async function runTests() {
   }
 }
 
+async function testSimpleChat() {
+  try {
+    console.log('=== 简化聊天测试 ===');
+    
+    const baseUrl = 'http://localhost:3000/api/v1';
+    
+    // 1. 先注册用户
+    console.log('\n1. 注册用户...');
+    const registerResponse = await axios.post(`${baseUrl}/auth/register`, {
+      email: `test${Date.now()}@example.com`,
+      password: 'password123',
+      username: 'testuser'
+    });
+    
+    console.log('✅ 用户注册成功');
+    console.log('注册响应:', JSON.stringify(registerResponse.data, null, 2));
+    
+    // 获取 token
+    const token = registerResponse.data.data?.token || registerResponse.data.token;
+    const userId = registerResponse.data.data?.user?.id || registerResponse.data.user?.id;
+    
+    console.log('Token:', token ? '已获取' : '未获取');
+    console.log('User ID:', userId);
+    
+    if (!token) {
+      throw new Error('未能获取认证 token');
+    }
+    
+    // 设置认证头
+    const authHeaders = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+    
+    // 2. 创建聊天会话
+    console.log('\n2. 创建聊天会话...');
+    const createChatResponse = await axios.post(`${baseUrl}/chats`, {
+      user_id: userId,
+      title: '测试聊天会话'
+    }, { headers: authHeaders });
+    
+    console.log('✅ 聊天会话创建成功');
+    console.log('会话 ID:', createChatResponse.data.data.id);
+    
+    const chatId = createChatResponse.data.data.id;
+    
+    // 3. 发送消息
+    console.log('\n3. 发送消息...');
+    const sendMessageResponse = await axios.post(`${baseUrl}/chats/${chatId}/messages`, {
+      content: '你好，我想和你聊天'
+    }, { headers: authHeaders });
+    
+    console.log('✅ 消息发送成功');
+    console.log('AI 回复:', sendMessageResponse.data.data.content);
+    
+    console.log('\n=== 测试完成 ===');
+    
+  } catch (error) {
+    console.error('\n❌ 测试失败:');
+    if (error.response) {
+      console.error('状态码:', error.response.status);
+      console.error('错误信息:', JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error('错误:', error.message);
+    }
+  }
+}
+
 // 运行测试
-runTests();
+// runTests();
+testSimpleChat();

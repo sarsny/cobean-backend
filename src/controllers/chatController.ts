@@ -92,16 +92,19 @@ export const createChat = async (req: Request, res: Response): Promise<void> => 
     } as ApiResponse<CreateChatResponse>);
   } catch (error) {
     console.error('Error creating conversation:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      error: 'Failed to create conversation'
+      error: 'Failed to create conversation',
+      details: error instanceof Error ? error.message : 'Unknown error'
     } as ApiResponse);
   }
 };
 
 export const sendMessage = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const messageData: SendMessageRequest = req.body;
+   try {
+    const { chatId } = req.params;
+    const { content, sender, metadata } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -112,16 +115,16 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    if (!messageData.conversation_id || !messageData.content) {
+    if (!content) {
       res.status(400).json({
         success: false,
-        error: 'Conversation ID and content are required'
+        error: 'Message content is required'
       } as ApiResponse);
       return;
     }
 
     // Check if conversation exists and belongs to user
-    const chat = await ChatModel.findById(messageData.conversation_id);
+    const chat = await ChatModel.findById(chatId);
     if (!chat) {
       res.status(404).json({
         success: false,
@@ -140,24 +143,64 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
 
     // Create user message
     const userMessage = await ChatMessageModel.create({
-      conversation_id: messageData.conversation_id,
-      sender: messageData.sender || 'user',
-      content: messageData.content,
-      metadata: messageData.metadata
+      conversation_id: chatId,
+      sender: sender || 'user',
+      content: content,
+      metadata: metadata
     });
 
-    // Get AI response from Coze
+    // Get AI response from Coze with custom variables
     let aiResponseText = '';
     try {
-      const cozeService = getCozeService();
+      const cozeService = getCozeService(); 
+      // Gather custom variables: thought content, username, and user preferences
+      let thoughtContent = '';
+      let username = '';
+      let userPreferences = {};
+      try {
+         // Get thought content if this is a thought-based conversation
+         if (chat.thought_id) {
+           const thought = await ThoughtModel.findById(chat.thought_id);
+           if (thought) {
+             thoughtContent = thought.description; // Use description instead of content
+           }
+         }
+         
+         // Get username from user data (assuming we have user info in the request)
+         // For now, we'll use the userId as username, but this could be enhanced
+         username = userId;
+         
+         // Get user preferences
+         const preferences = await UserPreferenceModel.findByUserId(userId);
+         if (preferences && preferences.length > 0) {
+           // Convert preferences array to object for easier access
+           userPreferences = preferences.reduce((acc, pref) => {
+             acc[pref.preference_key] = pref.score; // Use score instead of preference_value
+             return acc;
+           }, {} as Record<string, any>);
+         }
+       } catch (dataError) {
+         console.warn('Error gathering custom variables:', dataError);
+         // Continue with empty values if data gathering fails
+       }
+      const actions = await ActionModel.findByThoughtId(chat.thought_id);
+
+      // Prepare custom variables for Coze
+      const customVariables = {
+        thought: thoughtContent,
+        actions: JSON.stringify(actions) // 将 actions 数组转换为字符串
+        // username: username,
+        // user_preferences: userPreferences
+      };
+      console.info('sendMessage:', customVariables);
       // Use the existing Coze conversation ID if available
       const cozeConversationId = chat.coze_conversation_id;
       if (cozeConversationId) {
-        aiResponseText = await cozeService.completeChat(userId, messageData.content, cozeConversationId);
+        aiResponseText = await cozeService.completeChat(userId, content, cozeConversationId, customVariables);
       } else {
         // Fallback: create a new conversation if not exists
         const newCozeConversationId = await cozeService.createConversation(userId);
-        aiResponseText = await cozeService.completeChat(userId, messageData.content, newCozeConversationId);
+        aiResponseText = await cozeService.completeChat(userId, content, newCozeConversationId, customVariables);
         
         // Update the chat record with the new Coze conversation ID
         await ChatModel.update(chat.id, { coze_conversation_id: newCozeConversationId });
@@ -169,7 +212,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
 
     // Create AI message
     const aiMessage = await ChatMessageModel.create({
-      conversation_id: messageData.conversation_id,
+      conversation_id: chatId,
       sender: 'bean',
       content: aiResponseText,
       metadata: { generated_by: 'coze_service' }
@@ -186,7 +229,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
       }
     } as ApiResponse<SendMessageResponse>);
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error('Error sending message to thought chat:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to send message'
@@ -888,25 +931,11 @@ export const sendMessageWithActionNew = async (req: Request, res: Response): Pro
 
       // For now, create a mock response with action context
       // TODO: Integrate with actual AI service
-      const contextInfo = `
-想法信息：
-标题：${thought.title}
-描述：${thought.description}
-
-相关行动计划：
-${actions.map(action => `- ${action.summary} (类型: ${action.type || '未知'})`).join('\n')}
-
-用户选择记录：
-${choices.slice(0, 5).map(choice => `- 行动ID: ${choice.action_id}, 选择: ${choice.choice_type}`).join('\n')}
-
-行动历史：
-${actionHistories.slice(0, 5).map(history => `- 行动ID: ${history.action_id}, 最终状态: ${history.final_status}`).join('\n')}
-`;
 
       aiMessage = await ChatMessageModel.create({
         conversation_id: chatId,
         sender: 'bean',
-        content: `我理解您关于想法执行的问题：${content}\n\n基于以下上下文信息：\n${contextInfo}\n\n这是一个针对执行过程的回复。我是专门为chatWithAction接口配置的AI助手（bot_id: 7553108566920626185）。`,
+        content: `我理解您关于想法执行的问题：${content}\n\n基于以下上下文信息：\n这是一个针对执行过程的回复。我是专门为chatWithAction接口配置的AI助手（bot_id: 7553108566920626185）。`,
         metadata: {
           bot_id: '7553108566920626185',
           conversation_type: 'execution',

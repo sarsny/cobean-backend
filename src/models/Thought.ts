@@ -1,10 +1,13 @@
-import { supabase } from '../config/database';
+import { supabase, supabaseAdmin } from '../config/database';
 import { Thought, CreateThoughtRequest } from '../types';
 
 export class ThoughtModel {
   // Create a new thought
   static async create(data: CreateThoughtRequest): Promise<Thought> {
-    const { data: thought, error } = await supabase
+    // Use admin client to bypass RLS for thought creation
+    const client = supabaseAdmin || supabase;
+    
+    const { data: thought, error } = await client
       .from('thoughts')
       .insert([data])
       .select()

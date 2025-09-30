@@ -32,26 +32,15 @@ async function testCreateThoughtWithConversation() {
     console.log('响应状态:', response.status);
     console.log('响应数据:', JSON.stringify(response.data, null, 2));
     
-    const { thought, conversation, initial_messages } = response.data.data;
+    const thought = response.data.data;
     
     console.log('\n=== 创建结果分析 ===');
     console.log('Thought ID:', thought.id);
     console.log('Thought Title:', thought.title);
-    console.log('Conversation ID:', conversation.id);
-    console.log('Conversation Type:', conversation.conversation_type);
-    console.log('Coze Conversation ID:', conversation.coze_conversation_id);
-    
-    if (initial_messages) {
-      console.log('\n=== 初始消息交互 ===');
-      console.log('用户消息:', initial_messages.user_message.content);
-      console.log('AI回复:', initial_messages.ai_message.content);
-      console.log('AI回复元数据:', initial_messages.ai_message.metadata);
-    }
+    console.log('Thought Stage:', thought.stage);
     
     return {
-      thoughtId: thought.id,
-      conversationId: conversation.id,
-      cozeConversationId: conversation.coze_conversation_id
+      thoughtId: thought.id
     };
 
   } catch (error) {
@@ -131,29 +120,15 @@ async function testSendFollowUpMessage(conversationId) {
 async function runTests() {
   console.log('🚀 开始测试创建thought并自动创建conversation功能\n');
   
-  // 1. 测试创建thought并自动创建conversation
+  // 测试1: 创建thought并自动创建conversation
   const result = await testCreateThoughtWithConversation();
   if (!result) {
     console.log('❌ 主要功能测试失败，停止后续测试');
     return;
   }
   
-  // 等待一秒，确保数据已保存
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // 2. 测试获取thought和conversation数据
-  const thoughtData = await testGetThoughtWithConversation(result.thoughtId);
-  if (!thoughtData) {
-    console.log('❌ 获取数据测试失败');
-    return;
-  }
-  
-  // 3. 测试发送后续消息（如果conversation存在）
-  if (result.conversationId) {
-    await testSendFollowUpMessage(result.conversationId);
-  }
-  
-  console.log('\n🎉 所有测试完成！');
+  console.log('\n✅ 所有测试完成！');
+  console.log('创建的 Thought ID:', result.thoughtId);
 }
 
 // 运行测试

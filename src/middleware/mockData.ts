@@ -199,6 +199,19 @@ export const mockActionOperations = {
       success: true,
       data: updatedAction
     });
+  },
+
+  getByThoughtId: (req: Request, res: Response): void => {
+    const { thoughtId } = req.params;
+    const userId = (req as any).user?.id;
+    
+    const thoughtActions = Array.from(mockData.actions.values())
+      .filter(action => action.thought_id === thoughtId && action.user_id === userId);
+    
+    res.json({
+      success: true,
+      data: thoughtActions
+    });
   }
 };
 

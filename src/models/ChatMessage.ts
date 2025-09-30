@@ -7,7 +7,8 @@ export class ChatMessageModel {
     conversation_id: string;
     sender: 'user' | 'bean' | 'agent';
     content: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, any>; 
+    type?: string;
   }): Promise<ChatMessage> {
     const { data: message, error } = await supabase
       .from('messages')

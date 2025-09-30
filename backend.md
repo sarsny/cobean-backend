@@ -249,7 +249,36 @@ Special tokens for service-to-service communication:
 
 Valid SAT Token: `sat_X1n9dwCN24G3FKkKBwbEqEpL6pAOOCWbx24lOrRxeAdFvBtZEC7DY5qs7DNBlXyL`
 
+## 测试状态
+
+### 完整聊天流程测试 (2025-01-29)
+✅ **测试通过** - 所有核心功能正常工作
+
+**测试覆盖范围:**
+1. 用户注册和认证 ✅
+2. Thought 创建 ✅
+3. 聊天会话创建 ✅
+4. 消息发送和 AI 回复 ✅
+
+**已知问题:**
+- Bean 创建接口需要进一步优化（当前使用现有 Bean ID 作为备选方案）
+
+**测试脚本:** `test-complete-flow.js`
+
 ## Changelog
+
+### 2025-01-29
+- **修复 Thought 创建问题**: 解决了测试脚本中包含数据库不存在字段（category、content）导致的创建失败问题
+- **修复 UUID 格式错误**: 将无效的默认 Bean ID 替换为有效的 UUID 格式
+- **修复 AI 回复显示问题**: 修正了测试脚本中访问 AI 回复内容的数据结构路径
+- **完善错误处理**: 在 thoughtController 和 chatController 中增加了详细的错误日志记录
+- **测试流程验证**: 完整的聊天流程测试通过，包括用户注册、Thought 创建、聊天会话创建和消息发送
+- **优化聊天项处理逻辑**: 改进了 `cobeanService.ts` 中工作流分析结果的消息存储机制
+  - 根据聊天项是否包含 `action` 字段或 `message` 字段自动区分消息类型
+  - `action` 类型消息：存储行动建议，metadata 包含 `message_type: 'action'` 和 `action_data`
+  - `text` 类型消息：存储 Coben 的语音内容，metadata 包含 `message_type: 'text'` 和 `message_data`
+  - 所有消息都保留完整的 `original_data` 用于调试和追溯
+- **验证消息类型存储**: 通过数据库查询确认不同类型的聊天项能正确区分和存储
 
 ### 2025-09-29
 - **Added**: New endpoint `POST /api/v1/thoughts/with-conversation`

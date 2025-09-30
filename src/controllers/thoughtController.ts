@@ -47,9 +47,11 @@ export const createThought = async (req: Request, res: Response): Promise<void> 
     } as ApiResponse);
   } catch (error) {
     console.error('Error creating thought:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      error: 'Failed to create thought'
+      error: 'Failed to create thought',
+      details: error instanceof Error ? error.message : 'Unknown error'
     } as ApiResponse);
   }
 };
