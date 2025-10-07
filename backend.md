@@ -56,8 +56,7 @@ Cobean is an iOS application backend that provides intelligent assistance throug
 - `coze_conversation_id` (text, nullable)
 - `conversation_type` (text, default: 'thought')
 
-#### messages
-- `id` (uuid, primary key)
+- 数据保留策略：每个 thought_id 仅保留最近的一个 conversation。旧会话及其消息会按需清理，以降低数据冗余并保证上下文一致性。
 - `conversation_id` (uuid, foreign key to conversations.id)
 - `sender` (text, check: 'user', 'bean', 'agent')
 - `content` (text, not null)
@@ -130,6 +129,8 @@ Cobean is an iOS application backend that provides intelligent assistance throug
 - `updated_at` (timestamptz)
 
 ## API Endpoints
+
+重要：自 2025-09-30 起，完整且最新的接口文档已迁移至项目根目录的 api-endpoints.md。此处仅保留历史摘要，最新请求/响应示例与认证说明请查看独立文档。
 
 ### Authentication
 - `POST /api/v1/auth/register` - User registration
@@ -303,3 +304,10 @@ Valid SAT Token: `sat_X1n9dwCN24G3FKkKBwbEqEpL6pAOOCWbx24lOrRxeAdFvBtZEC7DY5qs7D
 - **Added**: User authentication with JWT
 - **Added**: Basic CRUD operations for thoughts and actions
 - **Added**: Supabase database integration
+
+### 2025-09-30
+- 文档迁移：将所有接口文档从 backend.md 迁移到独立文件 api-endpoints.md，方便前端工程师查阅与联调
+- 新增：统一接口文档文件，涵盖认证与通用规范、Authentication、Thoughts、Actions、Choices、Chats、Coze、Beans、Workflow、Mock API 模块
+- 说明：backend.md 的“API Endpoints”章节保留历史摘要，后续最新内容以 api-endpoints.md 为准
+- 数据清理：执行一次性清理，保留每个 thought_id 的最近会话；删除 24 个旧会话与 83 条关联消息
+- 策略更新：将上述数据保留策略记录到 Database Schema（conversations）说明
