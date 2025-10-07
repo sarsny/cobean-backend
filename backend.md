@@ -204,12 +204,14 @@ src/
 
 ## Setup & Deployment Guide
 
-### Prerequisites
+### 本地开发环境
+
+#### Prerequisites
 - Node.js 18+
 - npm or yarn
 - Supabase account and project
 
-### Environment Variables
+#### Environment Variables
 Create `.env` file with:
 ```
 SUPABASE_URL=your_supabase_url
@@ -221,7 +223,7 @@ COZE_BOT_ID=your_coze_bot_id
 PORT=3000
 ```
 
-### Installation & Running
+#### Installation & Running
 ```bash
 # Install dependencies
 npm install
@@ -235,6 +237,23 @@ npm run build
 # Start production server
 npm start
 ```
+
+### 生产环境部署
+
+详细的阿里云服务器部署指南请参考：[deployment-guide.md](./deployment-guide.md)
+
+**快速部署步骤：**
+1. 准备阿里云 ECS 实例
+2. 安装 Node.js 和 PM2
+3. 上传项目代码
+4. 配置环境变量
+5. 使用提供的部署脚本：`./deploy.sh`
+
+**部署文件：**
+- `deployment-guide.md` - 完整部署指南
+- `ecosystem.config.js` - PM2 配置文件
+- `deploy.sh` - 自动化部署脚本
+- `nginx.conf` - Nginx 配置模板
 
 ### Authentication
 
@@ -306,8 +325,30 @@ Valid SAT Token: `sat_X1n9dwCN24G3FKkKBwbEqEpL6pAOOCWbx24lOrRxeAdFvBtZEC7DY5qs7D
 - **Added**: Supabase database integration
 
 ### 2025-09-30
-- 文档迁移：将所有接口文档从 backend.md 迁移到独立文件 api-endpoints.md，方便前端工程师查阅与联调
-- 新增：统一接口文档文件，涵盖认证与通用规范、Authentication、Thoughts、Actions、Choices、Chats、Coze、Beans、Workflow、Mock API 模块
-- 说明：backend.md 的“API Endpoints”章节保留历史摘要，后续最新内容以 api-endpoints.md 为准
-- 数据清理：执行一次性清理，保留每个 thought_id 的最近会话；删除 24 个旧会话与 83 条关联消息
-- 策略更新：将上述数据保留策略记录到 Database Schema（conversations）说明
+- **文档迁移**: 将接口文档独立为 `api-endpoints.md`，提供更详细的接口说明和示例
+- **数据清理**: 执行数据库清理，每个 `thought_id` 仅保留最新的一个 `conversation`
+  - 删除了 24 个旧的 conversations 和 83 个关联的 messages
+  - 更新数据保留策略说明
+- **部署支持**: 新增阿里云服务器部署支持
+  - 创建 `deployment-guide.md` 完整部署指南
+  - 添加 `ecosystem.config.js` PM2 配置文件
+  - 提供 `deploy.sh` 自动化部署脚本
+  - 包含 `nginx.conf` Nginx 配置模板
+  - 更新 `backend.md` 部署章节
+- **Updated**: `thoughtController.ts` with `createThoughtWithConversation` method
+- **Updated**: `thoughtRoutes.ts` to include new endpoint
+- **Fixed**: Bean ID validation to use proper UUID format
+- **Tested**: Complete flow from thought creation to AI response
+
+### 2025-09-28
+- **Added**: Coze service integration for AI conversations
+- **Added**: Conversation and message management system
+- **Added**: Bean (AI assistant) management
+- **Updated**: Database schema with conversations and messages tables
+- **Added**: SAT token authentication system
+
+### 2025-09-27
+- **Initial**: Project setup with basic thought and action management
+- **Added**: User authentication with JWT
+- **Added**: Basic CRUD operations for thoughts and actions
+- **Added**: Supabase database integration
