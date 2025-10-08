@@ -29,14 +29,19 @@ cd /var/www/cobean-backend
 echo "📥 拉取最新代码..."
 git pull origin main
 
-# 清理依赖
-echo "🧹 清理依赖..."
+# 清理依赖和构建文件
+echo "🧹 清理依赖和构建文件..."
 rm -rf node_modules
 rm -f package-lock.json
+rm -rf dist
 
 # 重新安装依赖
 echo "📦 重新安装依赖..."
 npm install
+
+# 验证 uuid 版本
+echo "🔍 验证 uuid 版本..."
+npm list uuid
 
 # 重新构建项目
 echo "🔨 重新构建项目..."
