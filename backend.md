@@ -249,11 +249,25 @@ npm start
 4. 配置环境变量
 5. 使用提供的部署脚本：`./deploy.sh`
 
+### 代码更新
+
+服务器代码更新指南请参考：[update-guide.md](./update-guide.md)
+
+**快速更新步骤：**
+```bash
+ssh root@47.116.161.64
+cd /var/www/cobean-backend
+./deploy.sh
+```
+
 **部署文件：**
 - `deployment-guide.md` - 完整部署指南
+- `update-guide.md` - 代码更新指南
+- `quick-deploy.md` - 快速部署指南
 - `ecosystem.config.js` - PM2 配置文件
 - `deploy.sh` - 自动化部署脚本
 - `nginx.conf` - Nginx 配置模板
+- `troubleshooting.md` - 故障排查指南
 
 ### Authentication
 
@@ -287,54 +301,21 @@ Valid SAT Token: `sat_X1n9dwCN24G3FKkKBwbEqEpL6pAOOCWbx24lOrRxeAdFvBtZEC7DY5qs7D
 
 ## Changelog
 
-### 2025-01-29
-- **修复 Thought 创建问题**: 解决了测试脚本中包含数据库不存在字段（category、content）导致的创建失败问题
-- **修复 UUID 格式错误**: 将无效的默认 Bean ID 替换为有效的 UUID 格式
-- **修复 AI 回复显示问题**: 修正了测试脚本中访问 AI 回复内容的数据结构路径
-- **完善错误处理**: 在 thoughtController 和 chatController 中增加了详细的错误日志记录
-- **测试流程验证**: 完整的聊天流程测试通过，包括用户注册、Thought 创建、聊天会话创建和消息发送
-- **优化聊天项处理逻辑**: 改进了 `cobeanService.ts` 中工作流分析结果的消息存储机制
-  - 根据聊天项是否包含 `action` 字段或 `message` 字段自动区分消息类型
-  - `action` 类型消息：存储行动建议，metadata 包含 `message_type: 'action'` 和 `action_data`
-  - `text` 类型消息：存储 Coben 的语音内容，metadata 包含 `message_type: 'text'` 和 `message_data`
-  - 所有消息都保留完整的 `original_data` 用于调试和追溯
-- **验证消息类型存储**: 通过数据库查询确认不同类型的聊天项能正确区分和存储
-
-### 2025-09-29
-- **Added**: New endpoint `POST /api/v1/thoughts/with-conversation`
-  - Creates a thought and automatically sets up a conversation
-  - Sends initial message to Coze service
-  - Handles Coze response and stores it in the conversation
-  - Provides seamless integration between thought creation and AI interaction
-- **Updated**: `thoughtController.ts` with `createThoughtWithConversation` method
-- **Updated**: `thoughtRoutes.ts` to include new endpoint
-- **Fixed**: Bean ID validation to use proper UUID format
-- **Tested**: Complete flow from thought creation to AI response
-
-### 2025-09-28
-- **Added**: Coze service integration for AI conversations
-- **Added**: Conversation and message management system
-- **Added**: Bean (AI assistant) management
-- **Updated**: Database schema with conversations and messages tables
-- **Added**: SAT token authentication system
-
-### 2025-09-27
-- **Initial**: Project setup with basic thought and action management
-- **Added**: User authentication with JWT
-- **Added**: Basic CRUD operations for thoughts and actions
-- **Added**: Supabase database integration
-
 ### 2025-09-30
-- **文档迁移**: 将接口文档独立为 `api-endpoints.md`，提供更详细的接口说明和示例
-- **数据清理**: 执行数据库清理，每个 `thought_id` 仅保留最新的一个 `conversation`
-  - 删除了 24 个旧的 conversations 和 83 个关联的 messages
-  - 更新数据保留策略说明
+- **数据库清理**: 清理了 `conversations` 表中的重复数据，每个 `thought_id` 仅保留最新的一个 `conversation`
+  - 删除了 8 个重复的 `conversations` 记录
+  - 删除了 16 个相关的 `messages` 记录
+  - 清理后 `conversations` 表剩余 22 条记录，`messages` 表剩余 44 条记录
+- **数据保留策略**: 在 `conversations` 表说明中添加了数据保留策略，明确每个 `thought_id` 仅保留最近的一个 `conversation`
 - **部署支持**: 新增阿里云服务器部署支持
-  - 创建 `deployment-guide.md` 完整部署指南
-  - 添加 `ecosystem.config.js` PM2 配置文件
-  - 提供 `deploy.sh` 自动化部署脚本
-  - 包含 `nginx.conf` Nginx 配置模板
-  - 更新 `backend.md` 部署章节
+  - 新增 `deployment-guide.md` - 详细的阿里云服务器部署指南
+  - 新增 `ecosystem.config.js` - PM2 进程管理配置文件
+  - 新增 `deploy.sh` - 自动化部署脚本
+  - 新增 `nginx.conf` - Nginx 反向代理配置模板
+  - 新增 `quick-deploy.md` - 快速部署指南
+  - 新增 `troubleshooting.md` - 故障排查指南
+  - 新增 `update-guide.md` - 服务器代码更新指南
+  - 更新 `backend.md` 部署章节，区分本地开发和生产环境部署
 - **Updated**: `thoughtController.ts` with `createThoughtWithConversation` method
 - **Updated**: `thoughtRoutes.ts` to include new endpoint
 - **Fixed**: Bean ID validation to use proper UUID format

@@ -2,23 +2,37 @@
 
 ## 常见问题及解决方案
 
-### 1. 构建错误：`tsc: 未找到命令`
+### 1. 构建错误
 
-**问题**: 运行 `npm run build` 时提示 `sh: tsc: 未找到命令`
-
-**原因**: TypeScript 编译器未安装或仅安装了生产依赖
-
-**解决方案**:
+#### `tsc: 未找到命令`
+**问题**: TypeScript 编译器未安装
 ```bash
-# 安装所有依赖（包括开发依赖）
+# 解决方案：安装所有依赖（包括开发依赖）
 npm install
-
-# 验证 TypeScript 是否安装
-npx tsc --version
-
-# 重新构建
 npm run build
 ```
+
+#### `Error [ERR_REQUIRE_ESM]: require() of ES Module`
+**问题**: ES Module 兼容性问题，通常由 uuid 等包的新版本引起
+```bash
+# 解决方案：
+# 1. 停止服务
+pm2 stop cobean-backend
+
+# 2. 清理依赖
+rm -rf node_modules package-lock.json
+
+# 3. 重新安装依赖
+npm install
+
+# 4. 重新构建
+npm run build
+
+# 5. 重启服务
+pm2 start ecosystem.config.js
+```
+
+**注意**: 如果问题持续，检查 package.json 中的包版本，某些包的新版本可能不兼容 CommonJS。
 
 ### 2. PM2 启动失败
 
