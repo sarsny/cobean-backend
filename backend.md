@@ -301,21 +301,15 @@ Valid SAT Token: `sat_X1n9dwCN24G3FKkKBwbEqEpL6pAOOCWbx24lOrRxeAdFvBtZEC7DY5qs7D
 
 ## Changelog
 
+### 2025-10-08
+- **Node.js 版本要求更新**: 将最低版本要求从 18.0.0 升级到 20.0.0
+- **修复 ES Module 兼容性**: 解决 uuid 包的 ERR_REQUIRE_ESM 错误
+- **更新部署文档**: 添加 Node.js 版本检查和升级指南
+- **增强修复脚本**: server-fix-commands.sh 现在包含 Node.js 版本检查
+
 ### 2025-09-30
-- **数据库清理**: 清理了 `conversations` 表中的重复数据，每个 `thought_id` 仅保留最新的一个 `conversation`
-  - 删除了 8 个重复的 `conversations` 记录
-  - 删除了 16 个相关的 `messages` 记录
-  - 清理后 `conversations` 表剩余 22 条记录，`messages` 表剩余 44 条记录
-- **数据保留策略**: 在 `conversations` 表说明中添加了数据保留策略，明确每个 `thought_id` 仅保留最近的一个 `conversation`
-- **部署支持**: 新增阿里云服务器部署支持
-  - 新增 `deployment-guide.md` - 详细的阿里云服务器部署指南
-  - 新增 `ecosystem.config.js` - PM2 进程管理配置文件
-  - 新增 `deploy.sh` - 自动化部署脚本
-  - 新增 `nginx.conf` - Nginx 反向代理配置模板
-  - 新增 `quick-deploy.md` - 快速部署指南
-  - 新增 `troubleshooting.md` - 故障排查指南
-  - 新增 `update-guide.md` - 服务器代码更新指南
-  - 更新 `backend.md` 部署章节，区分本地开发和生产环境部署
+- **新增服务器代码更新指南**: 创建 `update-guide.md` 文件，提供详细的服务器代码更新流程
+- **更新部署支持文件**: 完善 `deployment-guide.md`、`quick-deploy.md`、`troubleshooting.md` 等相关文档
 - **Updated**: `thoughtController.ts` with `createThoughtWithConversation` method
 - **Updated**: `thoughtRoutes.ts` to include new endpoint
 - **Fixed**: Bean ID validation to use proper UUID format

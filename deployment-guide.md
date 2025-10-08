@@ -17,6 +17,28 @@
 ssh root@47.116.161.64
 ```
 
+## 环境要求
+
+### Node.js 版本要求
+- **最低版本**: Node.js 20.0.0 或更高
+- **推荐版本**: Node.js 20.x LTS
+- **重要说明**: Node.js 18 及以下版本已被 Supabase 弃用，必须升级到 20.0.0 或更高版本
+
+### 检查和升级 Node.js
+```bash
+# 检查当前版本
+node -v
+
+# 如果版本低于 20.0.0，需要升级
+# 使用 NodeSource 仓库升级
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 验证升级
+node -v
+npm -v
+```
+
 ### 3. 安装基础环境
 
 #### 安装 Node.js (推荐使用 nvm)

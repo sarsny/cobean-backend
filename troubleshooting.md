@@ -12,7 +12,40 @@ npm install
 npm run build
 ```
 
-#### `Error [ERR_REQUIRE_ESM]: require() of ES Module`
+#### Node.js 版本警告
+
+### 问题描述
+```
+⚠️ Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later.
+```
+
+### 解决方案
+1. **检查当前版本**
+   ```bash
+   node -v
+   ```
+
+2. **升级到 Node.js 20**
+   ```bash
+   # 使用 NodeSource 仓库
+   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   
+   # 验证升级
+   node -v
+   npm -v
+   ```
+
+3. **重新部署应用**
+   ```bash
+   cd /var/www/cobean-backend
+   pm2 stop all
+   npm install
+   npm run build
+   pm2 start ecosystem.config.js
+   ```
+
+## Error [ERR_REQUIRE_ESM]: require() of ES Module`
 **问题**: ES Module 兼容性问题，通常由 uuid 等包的新版本引起
 ```bash
 # 解决方案：
