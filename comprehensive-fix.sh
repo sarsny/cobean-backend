@@ -8,6 +8,15 @@ set -e  # 遇到错误时退出
 echo "🔧 Cobean Backend 综合修复脚本"
 echo "=================================="
 
+# 检查网络连接
+echo "🌐 检查网络连接..."
+if ! curl -s --connect-timeout 10 https://vyfbbniyaafjjygnzusn.supabase.co >/dev/null; then
+    echo "⚠️  检测到网络连接问题，尝试修复..."
+    ./server-network-fix.sh
+    echo "等待网络修复完成..."
+    sleep 5
+fi
+
 # 1. 检查当前 Node.js 版本
 echo "📋 检查当前 Node.js 版本..."
 CURRENT_NODE_VERSION=$(node --version)
@@ -132,4 +141,4 @@ echo ""
 echo "📝 后续验证命令："
 echo "   pm2 list                    # 检查服务状态"
 echo "   pm2 logs cobean-backend     # 查看服务日志"
-echo "   curl -I http://localhost:3000/api/health  # 测试 API"
+echo "   curl -I http://localhost:3000/api/v1/health  # 测试 API"

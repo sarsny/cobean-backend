@@ -62,4 +62,4 @@ pm2 list
 echo "✅ 修复完成！"
 echo "🔍 验证服务是否正常运行..."
 sleep 5
-curl -I http://localhost:3000/api/health || echo "❌ 服务可能未正常启动，请检查日志"
+curl -I http://localhost:3000/api/v1/health || echo "❌ 服务可能未正常启动，请检查日志"
