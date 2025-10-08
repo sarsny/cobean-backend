@@ -19,7 +19,7 @@ git pull origin main
 
 # 安装依赖
 echo "📦 安装依赖..."
-npm install --production
+npm install  # 安装所有依赖，包括 TypeScript
 
 # 构建项目
 echo "🔨 构建项目..."

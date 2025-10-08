@@ -39,15 +39,13 @@ cd /var/www
 git clone https://github.com/your-username/cobean-backend.git
 cd cobean-backend
 
-# 安装依赖
-npm install --production
+# 安装依赖并构建
+npm install  # 安装所有依赖（包括 TypeScript）
+npm run build  # 构建项目
 
 # 配置环境变量
 cp .env.example .env
 nano .env  # 编辑环境变量
-
-# 构建项目
-npm run build
 
 # 启动应用
 pm2 start ecosystem.config.js

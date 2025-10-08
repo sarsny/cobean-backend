@@ -4,16 +4,17 @@ import { CreateBeanRequest, UpdateBeanRequest, ApiResponse } from '../types';
 
 export class BeanController {
   // Create a new bean
-  static async createBean(req: Request, res: Response) {
+  static async createBean(req: Request, res: Response): Promise<void> {
     try {
       const beanData: CreateBeanRequest = req.body;
       
       // Validate required fields
       if (!beanData.user_id || !beanData.name) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'user_id and name are required'
         } as ApiResponse);
+        return;
       }
 
       const bean = await BeanModel.create(beanData);
@@ -33,16 +34,17 @@ export class BeanController {
   }
 
   // Get bean by ID
-  static async getBeanById(req: Request, res: Response) {
+  static async getBeanById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const bean = await BeanModel.findById(id);
 
       if (!bean) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: 'Bean not found'
         } as ApiResponse);
+        return;
       }
 
       res.json({
@@ -59,7 +61,7 @@ export class BeanController {
   }
 
   // Get all beans for a user
-  static async getBeansByUserId(req: Request, res: Response) {
+  static async getBeansByUserId(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
       const beans = await BeanModel.findByUserId(userId);
@@ -78,7 +80,7 @@ export class BeanController {
   }
 
   // Update bean
-  static async updateBean(req: Request, res: Response) {
+  static async updateBean(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const updates: UpdateBeanRequest = req.body;
@@ -86,10 +88,11 @@ export class BeanController {
       // Check if bean exists
       const existingBean = await BeanModel.findById(id);
       if (!existingBean) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: 'Bean not found'
         } as ApiResponse);
+        return;
       }
 
       const updatedBean = await BeanModel.update(id, updates);
@@ -109,17 +112,18 @@ export class BeanController {
   }
 
   // Delete bean
-  static async deleteBean(req: Request, res: Response) {
+  static async deleteBean(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
 
       // Check if bean exists
       const existingBean = await BeanModel.findById(id);
       if (!existingBean) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: 'Bean not found'
         } as ApiResponse);
+        return;
       }
 
       await BeanModel.delete(id);
@@ -138,16 +142,17 @@ export class BeanController {
   }
 
   // Get beans by status
-  static async getBeansByStatus(req: Request, res: Response) {
+  static async getBeansByStatus(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
       const { status } = req.query;
 
       if (!status || typeof status !== 'string') {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'Status parameter is required'
         } as ApiResponse);
+        return;
       }
 
       const beans = await BeanModel.findByStatus(userId, status);

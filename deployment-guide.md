@@ -69,10 +69,19 @@ cd cobean-backend
 scp -r ./cobean-backend root@47.116.161.64:/var/www/
 ```
 
-### 2. 安装依赖
+### 3.2 安装项目依赖
+
 ```bash
 cd /var/www/cobean-backend
-npm install --production
+
+# 首先安装所有依赖（包括开发依赖，用于构建）
+npm install
+
+# 构建项目
+npm run build
+
+# 构建完成后，重新安装仅生产依赖（可选，节省空间）
+# npm ci --production
 ```
 
 ### 3. 配置环境变量
@@ -110,9 +119,20 @@ COZE_API_TOKEN=your_coze_api_token
 COZE_BOT_ID=your_coze_bot_id
 ```
 
-### 4. 构建项目
+### 3.4 构建项目
+
+**注意**: 构建步骤已在 3.2 节中完成，这里不需要重复执行。
+
+如果需要单独构建：
 ```bash
+# 确保已安装所有依赖（包括 TypeScript）
+npm install
+
+# 构建项目
 npm run build
+
+# 验证构建结果
+ls -la dist/
 ```
 
 ### 5. 使用 PM2 启动应用
