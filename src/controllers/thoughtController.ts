@@ -393,6 +393,13 @@ export const updateThoughtStageToInProgress = async (req: Request, res: Response
       stage: 'in_progress'
     });
 
+    // 更新关联的conversation状态为 in_progress
+    // 查询与 thought 关联的 conversation
+    const conversation = await ChatModel.findByThoughtAndUser(thought.id, userId);
+    if (conversation) {
+      await ChatModel.update(conversation.id, {
+      conversation_type: 'execution'
+    });}
     res.json({
       success: true,
       data: updatedThought
