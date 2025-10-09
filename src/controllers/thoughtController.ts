@@ -505,10 +505,24 @@ export const createThoughtWithConversation = async (req: Request, res: Response)
 
       // 更新conversation的updated_at时间戳
       await ChatModel.update(conversation.id, { updated_at: new Date().toISOString() });
-
+ // 将 conversation 信息合并到 thought 中返回
+      const thoughtWithConversation = {
+        ...thought,
+        conversation: {
+          id: conversation.id,
+          thought_id: conversation.thought_id,
+          bean_id: conversation.bean_id,
+          user_id: conversation.user_id,
+          conversation_type: conversation.conversation_type,
+          coze_conversation_id: conversation.coze_conversation_id,
+          created_at: conversation.created_at,
+          updated_at: conversation.updated_at
+        }
+      };
+      
       res.status(201).json({
         success: true,
-        data: thought
+        data: thoughtWithConversation
       } as ApiResponse);
 
     } catch (messageError) {
