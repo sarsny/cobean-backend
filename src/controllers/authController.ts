@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabase } from '../config/database';
+import { supabase, supabaseAdmin } from '../config/database';
 import { RegisterRequest, LoginRequest, AuthResponse, User } from '../types';
 import jwt from 'jsonwebtoken';
 
@@ -38,11 +38,36 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 使用Supabase Auth进行注册
-    const { data, error } = await supabase.auth.signUp({
+    // 使用Supabase Auth进行注册（匿名注册）
+    let { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
+
+    // 当 Supabase 返回 500 unexpected_failure（常见于自定义 SMTP 失败等）时，使用 service role 兜底创建并跳过邮箱确认
+    if (error && supabaseAdmin) {
+      const isUnexpectedFailure = (error.status === 500) || /unexpected_failure/i.test(error.message || '');
+      if (isUnexpectedFailure) {
+        try {
+          const adminResult = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true
+          });
+          if (adminResult.error) {
+            // 兜底也失败，按原错误返回
+            console.error('Admin createUser failed:', adminResult.error);
+          } else {
+            // 构造与 signUp 相同的数据结构以复用后续逻辑
+            data = { user: adminResult.data.user!, session: null } as any;
+            error = null as any;
+            console.log('✅ Fallback: created user via service role and confirmed email.');
+          }
+        } catch (e) {
+          console.error('Admin createUser exception:', e);
+        }
+      }
+    }
 
     if (error) {
       res.status(400).json({
@@ -68,6 +93,31 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       created_at: data.user.created_at,
       updated_at: data.user.updated_at || data.user.created_at
     };
+
+    // 同步用户到应用的 users 表（使用 Service Role 绕过 RLS）
+    try {
+      if (supabaseAdmin) {
+        const { error: upsertError } = await supabaseAdmin
+          .from('users')
+          .upsert({
+            id: user.id,
+            email: user.email,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+
+        if (upsertError) {
+          // 不中断注册流程，但记录日志以便排查
+          console.error('Failed to upsert user into users table:', upsertError);
+        }
+      } else {
+        console.warn('supabaseAdmin is not configured; skipping users table upsert');
+      }
+    } catch (e) {
+      console.error('Error syncing user to users table:', e);
+      // 不影响注册成功返回
+    }
 
     // 生成JWT token
     const token = jwt.sign(

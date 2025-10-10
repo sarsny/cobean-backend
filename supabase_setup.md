@@ -15,6 +15,51 @@
 4. 执行以下SQL语句：
 
 ```sql
+-- Create users table (required for registration and ensureUser middleware)
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    username TEXT,
+    full_name TEXT,
+    avatar_url TEXT,
+    password_hash TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- RLS policies
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can insert their own row" ON users;
+CREATE POLICY "Users can insert their own row" ON users
+FOR INSERT WITH CHECK (id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
+CREATE POLICY "Users can view own profile" ON users
+FOR SELECT USING (id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
+CREATE POLICY "Users can update own profile" ON users
+FOR UPDATE USING (id = auth.uid()) WITH CHECK (id = auth.uid());
+
+-- Trigger for updated_at
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS users_set_updated_at ON users;
+CREATE TRIGGER users_set_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
 -- Create thoughts table
 CREATE TABLE IF NOT EXISTS thoughts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -93,6 +138,17 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 curl -X GET "https://vyfbbniyaafjjygnzusn.supabase.co/rest/v1/thoughts" \
   -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmJibml5YWFmamp5Z256dXNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MTY1MDIsImV4cCI6MjA3NDA5MjUwMn0._4Tgh5LTLB_cYCmimFOIIBxXG0kftpck7ldxSGeIXw4" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmJibml5YWFmamp5Z256dXNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MTY1MDIsImV4cCI6MjA3NDA5MjUwMn0._4Tgh5LTLB_cYCmimFOIIBxXG0kftpck7ldxSGeIXw4"
+
+# 验证 users 表的 RLS 与插入权限（需用户登录后）
+curl -X POST "https://vyfbbniyaafjjygnzusn.supabase.co/rest/v1/users" \
+  -H "apikey: $SUPABASE_ANON_KEY" \
+  -H "Authorization: Bearer <USER_ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "<AUTH_UID>",
+    "email": "test@example.com",
+    "username": "testuser"
+  }'
 ```
 
 ## 测试API
